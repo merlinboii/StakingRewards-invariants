@@ -22,10 +22,10 @@ abstract contract Setup is BaseSetup, ActorManager, AssetManager, Utils {
     /// This contains all calls to be performed in the tester constructor, both for Echidna and Foundry
     function setup() internal virtual override {
         stakingRewards = new StakingRewards(
-            address(0),
-            address(0),
-            address(0),
-            address(0)
+            address(this),
+            address(this),
+            address(this),
+            address(this)
         ); // TODO: Add parameters here
     }
 

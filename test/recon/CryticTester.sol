@@ -6,6 +6,7 @@ import {CryticAsserts} from "@chimera/CryticAsserts.sol";
 import {TargetFunctions} from "./TargetFunctions.sol";
 
 // echidna . --contract CryticTester --config echidna.yaml --format text --workers 16 --test-limit 1000000
+// recon fuzz . --contract CryticTester --config echidna.yaml --format text --workers 16 --test-limit 1000000000
 // medusa fuzz
 contract CryticTester is TargetFunctions, CryticAsserts {
     constructor() payable {
