@@ -1,0 +1,5 @@
+chimera/=lib/chimera/src/
+forge-std/=lib/forge-std/src/
+setup-helpers/=lib/setup-helpers/src/
+@chimera/=lib/chimera/src/
+@recon/=lib/setup-helpers/src/

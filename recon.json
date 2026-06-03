@@ -1,0 +1,68 @@
+{
+  "out/StakingRewards.sol/StakingRewards.json": {
+    "enabled": true,
+    "functions": [
+      {
+        "signature": "acceptOwnership()",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "exit()",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "getReward()",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "nominateNewOwner(address)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "notifyRewardAmount(uint256)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "recoverERC20(address,uint256)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "setPaused(bool)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "setRewardsDistribution(address)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "setRewardsDuration(uint256)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "stake(uint256)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "updatePeriodFinish(uint256)",
+        "actor": "actor",
+        "mode": "normal"
+      },
+      {
+        "signature": "withdraw(uint256)",
+        "actor": "actor",
+        "mode": "normal"
+      }
+    ],
+    "separated": true
+  }
+}
