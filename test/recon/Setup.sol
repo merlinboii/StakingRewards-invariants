@@ -24,8 +24,8 @@ abstract contract Setup is BaseSetup, ActorManager, AssetManager, Utils {
         stakingRewards = new StakingRewards(
             address(this),
             address(this),
-            address(this),
-            address(this)
+            address(_newAsset(18)),
+            address(_newAsset(18))
         ); // TODO: Add parameters here
     }
 
