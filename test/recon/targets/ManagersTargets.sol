@@ -8,6 +8,7 @@ import {vm} from "@chimera/Hevm.sol";
 
 import {MockERC20} from "@recon/MockERC20.sol";
 
+import "src/StakingRewards.sol";
 
 // Target functions that are effectively inherited from the Actor and AssetManagers
 // Once properly standardized, managers will expose these by default
@@ -17,6 +18,12 @@ abstract contract ManagersTargets is
     Properties
 {
     // == ACTOR HANDLERS == //
+
+    function switch_stakingRewards(uint256 entropy) public {
+        _switchStakingRewards(entropy);
+
+        stakingRewards = StakingRewards(_getStakingRewards());
+    }
     
     /// @dev Start acting as another actor
     function switchActor(uint256 entropy) public {
