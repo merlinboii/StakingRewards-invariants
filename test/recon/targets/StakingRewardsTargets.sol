@@ -30,23 +30,17 @@ abstract contract StakingRewardsTargets is
             );
         }
     }
-
-    function stakingRewards_notifyRewardAmount_clamped(uint256 reward) public asActor {
-        stakingRewards.notifyRewardAmount(reward);
-
-        _ghost_totalRewardDistributed += reward;
-    }
     /// AUTO GENERATED TARGET FUNCTIONS - WARNING: DO NOT DELETE OR MODIFY THIS LINE ///
 
     function stakingRewards_acceptOwnership() public asActor {
         stakingRewards.acceptOwnership();
     }
 
-    function stakingRewards_exit() public asActor {
+    function stakingRewards_exit() public updateGhosts asActor {
         stakingRewards.exit();
     }
 
-    function stakingRewards_getReward() public asActor {
+    function stakingRewards_getReward() public updateGhosts asActor {
         stakingRewards.getReward();
 
         canary_claimRewardsTimestamp = block.timestamp;
@@ -56,37 +50,38 @@ abstract contract StakingRewardsTargets is
         stakingRewards.nominateNewOwner(_owner);
     }
 
-    function stakingRewards_notifyRewardAmount(uint256 reward) public asActor {
+    function stakingRewards_notifyRewardAmount(uint256 reward) public updateGhosts asActor {
         stakingRewards.notifyRewardAmount(reward);
+
+        _ghost_totalNotifiedReward += reward;
+        canary_rewardDistributionTimestamp = block.timestamp;
     }
 
     function stakingRewards_recoverERC20(address tokenAddress, uint256 tokenAmount) public asActor {
         stakingRewards.recoverERC20(tokenAddress, tokenAmount);
     }
 
-    function stakingRewards_setPaused(bool _paused) public asActor {
+    function stakingRewards_setPaused(bool _paused) public updateGhosts asActor {
         stakingRewards.setPaused(_paused);
     }
 
     function stakingRewards_setRewardsDistribution(address _rewardsDistribution) public asActor {
         stakingRewards.setRewardsDistribution(_rewardsDistribution);
-
-        canary_rewardDistributionTimestamp = block.timestamp;
     }
 
-    function stakingRewards_setRewardsDuration(uint256 _rewardsDuration) public asActor {
+    function stakingRewards_setRewardsDuration(uint256 _rewardsDuration) public updateGhosts asActor {
         stakingRewards.setRewardsDuration(_rewardsDuration);
     }
 
-    function stakingRewards_stake(uint256 amount) public asActor {
+    function stakingRewards_stake(uint256 amount) public updateGhosts asActor {
         stakingRewards.stake(amount);
     }
 
-    function stakingRewards_updatePeriodFinish(uint256 timestamp) public asActor {
+    function stakingRewards_updatePeriodFinish(uint256 timestamp) public updateGhosts asActor {
         stakingRewards.updatePeriodFinish(timestamp);
     }
 
-    function stakingRewards_withdraw(uint256 amount) public asActor {
+    function stakingRewards_withdraw(uint256 amount) public updateGhosts asActor {
         stakingRewards.withdraw(amount);
     }
 }

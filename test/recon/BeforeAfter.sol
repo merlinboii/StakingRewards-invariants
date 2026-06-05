@@ -15,8 +15,7 @@ abstract contract BeforeAfter is Setup {
         uint256 rewardPerTokenStored;
 
         uint256 totalRewardDistributed;
-        uint256 rewardTokenBalance;
-        uint256 stakingTokenBalance;
+        uint256 timestamp;
 
         /// STATEs ///
         RewardState rewardState;
@@ -32,7 +31,7 @@ abstract contract BeforeAfter is Setup {
     Vars internal _before;
     Vars internal _after;
 
-    uint256 internal _ghost_totalRewardDistributed;
+    uint256 internal _ghost_totalNotifiedReward;
 
     enum StakeState {
         None,
@@ -53,10 +52,12 @@ abstract contract BeforeAfter is Setup {
     }
 
     function __before() internal {
+        __snapshot(_before);
 
     }
 
     function __after() internal {
+        __snapshot(_after);
 
     }
 
@@ -69,9 +70,8 @@ abstract contract BeforeAfter is Setup {
         vars.rewardPerTokenStored = stakingRewards.rewardPerTokenStored();
         vars.rewardsDuration = stakingRewards.rewardsDuration();
 
-        vars.totalRewardDistributed = _ghost_totalRewardDistributed;
-        vars.rewardTokenBalance = rewardsToken.balanceOf(address(stakingRewards));
-        vars.stakingTokenBalance = stakingToken.balanceOf(address(stakingRewards));
+        vars.totalRewardDistributed = _ghost_totalNotifiedReward;
+        vars.timestamp = block.timestamp;
 
         /// STATEs ///
         vars.rewardState = __isActiveReward(block.timestamp, vars.periodFinish, vars.rewardRate);
@@ -96,18 +96,43 @@ abstract contract BeforeAfter is Setup {
         return totalSupply > 0 ? StakeState.Staking : StakeState.NoStaking;
     }
 
+    function __lastTimeRewardApplicable(Vars storage vars) internal view returns (uint256) {
+        return __lastTimeRewardApplicable(vars.timestamp, vars.periodFinish);
+    }
+
     function __lastTimeRewardApplicable(uint256 timestamp, uint256 periodFinish) internal pure returns (uint256) {
         return timestamp < periodFinish ? timestamp : periodFinish;
     }
 
-    function __rewardPerToken(uint256 rewardPerTokenStored, uint256 lastUpdateTime, uint256 rewardRate, uint256 totalSupply) internal view returns (uint256) {
+    function __rewardPerToken(Vars storage vars) internal view returns (uint256) {
+        return __rewardPerToken(
+            vars.timestamp,
+            vars.rewardPerTokenStored,
+            vars.lastUpdateTime,
+            vars.rewardRate,
+            vars.totalSupply
+        );
+    }
+
+    function __rewardPerToken(uint256 timestamp, uint256 rewardPerTokenStored, uint256 lastUpdateTime, uint256 rewardRate, uint256 totalSupply) internal pure returns (uint256) {
         if (totalSupply == 0) {
             return rewardPerTokenStored;
         }
         return
-            rewardPerTokenStored + (__lastTimeRewardApplicable(block.timestamp, periodFinish) - lastUpdateTime) * rewardRate * 1e18 / totalSupply;
+            rewardPerTokenStored + (__lastTimeRewardApplicable(timestamp, periodFinish) - lastUpdateTime) * rewardRate * 1e18 / totalSupply;
+    }
+
+    function __earned_rewards(Vars storage vars) internal view returns (uint256) {
+        return __earned_rewards(
+            vars.actor_stakingBalance,
+            __rewardPerToken(vars),
+            vars.actor_userRewardPerTokenPaid,
+            vars.actor_rewards
+        );
     }
 
     function __earned_rewards(uint256 balance, uint256 rewardPerToken, uint256 userRewardPerTokenPaid, uint256 rewards) internal pure returns (uint256) {
         return (balance * (rewardPerToken - userRewardPerTokenPaid) / 1e18) + rewards;
+    }
+
 }
