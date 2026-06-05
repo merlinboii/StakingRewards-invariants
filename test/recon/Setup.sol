@@ -18,11 +18,11 @@ import "src/StakingRewards.sol";
 
 abstract contract Setup is BaseSetup, ActorManager, AssetManager, StakingRewardsManager, Utils {
     StakingRewards stakingRewards;
-    
+
     /// === Setup === ///
     /// This contains all calls to be performed in the tester constructor, both for Echidna and Foundry
     function setup() internal virtual override {
-        stakingRewards = _deployStakingRewards(18, 18);
+        stakingRewards = _deployStakingRewards(_newAsset(18), _newAsset(18));
         _addStakingRewards(address(stakingRewards));
 
         // Setup actors
@@ -46,7 +46,27 @@ abstract contract Setup is BaseSetup, ActorManager, AssetManager, StakingRewards
 
     function setup_newStakingRewards(uint8 stakingTokenDec, uint8 rewardsTokenDec) public asActor {
         // Disable for now, just want to keep the interface
-        // StakingRewards newStakingRewards = _deployStakingRewards(stakingTokenDec, rewardsTokenDec);
+
+        // StakingRewards newStakingRewards = _deployStakingRewards(_newAsset(stakingTokenDec), _newAsset(rewardsTokenDec));
+
+        // address[] memory actors = _getActors();
+        // for (uint256 i = 0; i < actors.length; i++) {
+        //     MockERC20(newStakingRewards.stakingToken()).mint(actors[i], type(uint88).max);
+        //     MockERC20(newStakingRewards.rewardsToken()).mint(actors[i], type(uint88).max);
+            
+        //     vm.startPrank(actors[i]);
+        //     MockERC20(newStakingRewards.stakingToken()).approve(address(newStakingRewards), type(uint256).max);
+        //     MockERC20(newStakingRewards.rewardsToken()).approve(address(newStakingRewards), type(uint256).max);
+        //     vm.stopPrank();
+        // }
+
+        // _addStakingRewards(address(newStakingRewards));
+    }
+
+    function setup_newStakingRewards_same_stakingToken_rewardsToken(uint8 tokenDec) public asActor {
+        // Disable for now, just want to keep the interface
+        // address token = _newAsset(tokenDec);
+        // StakingRewards newStakingRewards = _deployStakingRewards(token, token);
 
         // address[] memory actors = _getActors();
         // for (uint256 i = 0; i < actors.length; i++) {
@@ -63,14 +83,14 @@ abstract contract Setup is BaseSetup, ActorManager, AssetManager, StakingRewards
     }
 
     function _deployStakingRewards(
-        uint8 stakingTokenDec,
-        uint8 rewardsTokenDec
+        address stakingToken,
+        address rewardsToken
     ) internal returns (StakingRewards) {
         return new StakingRewards(
             address(this),
             address(this),
-            _newAsset(stakingTokenDec),
-            _newAsset(rewardsTokenDec)
+            stakingToken,
+            rewardsToken
         );
     }
 
