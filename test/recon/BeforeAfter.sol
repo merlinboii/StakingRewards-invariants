@@ -26,12 +26,24 @@ abstract contract BeforeAfter is Setup {
         uint256 actor_stakingBalance;
         uint256 actor_rewards;
         uint256 actor_userRewardPerTokenPaid;
+
+        StakeState actor_stakeState;
     }
 
     Vars internal _before;
     Vars internal _after;
+    OpType internal currentOperation;
 
     uint256 internal _ghost_totalNotifiedReward;
+
+    enum OpType {
+        GENERIC,
+        ADD_STAKE,
+        REMOVE_STAKE,
+        ADD_REWARDS,
+        CLAIM_REWARDS,
+        EXIT
+    }
 
     enum StakeState {
         NONE,
@@ -45,7 +57,15 @@ abstract contract BeforeAfter is Setup {
         ACTIVE_REWARDS
     }
 
+    modifier updateGhostsWithType(OpType op) {
+       currentOperation = op;
+        __before();
+        _;
+        __after();
+    }
+
     modifier updateGhosts {
+        currentOperation = OpType.GENERIC;
         __before();
         _;
         __after();
@@ -83,6 +103,8 @@ abstract contract BeforeAfter is Setup {
         vars.actor_stakingBalance = stakingRewards.balanceOf(actor);
         vars.actor_rewards = stakingRewards.rewards(actor);
         vars.actor_userRewardPerTokenPaid = stakingRewards.userRewardPerTokenPaid(actor);
+
+        vars.actor_stakeState = __stakeState(vars.actor_stakingBalance);
     }
 
     function __isActiveReward(uint256 timestamp, uint256 periodFinish, uint256 rewardRate) internal view returns (RewardState) {

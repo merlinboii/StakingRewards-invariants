@@ -36,11 +36,11 @@ abstract contract StakingRewardsTargets is
         stakingRewards.acceptOwnership();
     }
 
-    function stakingRewards_exit() public updateGhosts asActor {
+    function stakingRewards_exit() public updateGhostsWithType(OpType.EXIT) asActor {
         stakingRewards.exit();
     }
 
-    function stakingRewards_getReward() public updateGhosts asActor {
+    function stakingRewards_getReward() public updateGhostsWithType(OpType.CLAIM_REWARDS) asActor {
         stakingRewards.getReward();
 
         canary_claimRewardsTimestamp = block.timestamp;
@@ -50,7 +50,7 @@ abstract contract StakingRewardsTargets is
         stakingRewards.nominateNewOwner(_owner);
     }
 
-    function stakingRewards_notifyRewardAmount(uint256 reward) public updateGhosts asActor {
+    function stakingRewards_notifyRewardAmount(uint256 reward) public updateGhostsWithType(OpType.ADD_REWARDS) asActor {
         stakingRewards.notifyRewardAmount(reward);
 
         _ghost_totalNotifiedReward += reward;
@@ -73,7 +73,7 @@ abstract contract StakingRewardsTargets is
         stakingRewards.setRewardsDuration(_rewardsDuration);
     }
 
-    function stakingRewards_stake(uint256 amount) public updateGhosts asActor {
+    function stakingRewards_stake(uint256 amount) public updateGhostsWithType(OpType.ADD_STAKE) asActor {
         stakingRewards.stake(amount);
     }
 
@@ -81,7 +81,7 @@ abstract contract StakingRewardsTargets is
         stakingRewards.updatePeriodFinish(timestamp);
     }
 
-    function stakingRewards_withdraw(uint256 amount) public updateGhosts asActor {
+    function stakingRewards_withdraw(uint256 amount) public updateGhostsWithType(OpType.REMOVE_STAKE) asActor {
         stakingRewards.withdraw(amount);
     }
 }
