@@ -6,11 +6,45 @@ import {Setup} from "./Setup.sol";
 // ghost variables for tracking state variable values before and after function calls
 abstract contract BeforeAfter is Setup {
     struct Vars {
-        uint256 __ignore__;
+        /// CONTRACT STATE VARIABLES ///
+        uint256 totalSupply;
+        uint256 rewardRate;
+        uint256 periodFinish;
+        uint256 lastUpdateTime;
+        uint256 rewardsDuration;
+        uint256 rewardPerTokenStored;
+
+        uint256 totalRewardDistributed;
+        uint256 rewardTokenBalance;
+        uint256 stakingTokenBalance;
+
+        /// STATEs ///
+        RewardState rewardState;
+        StakeState stakeState;
+        bool paused;
+
+        /// ACTOR STATE VARIABLES ///
+        uint256 actor_stakingBalance;
+        uint256 actor_rewards;
+        uint256 actor_userRewardPerTokenPaid;
     }
 
     Vars internal _before;
     Vars internal _after;
+
+    uint256 internal _ghost_totalRewardDistributed;
+
+    enum StakeState {
+        None,
+        NoStaking,
+        Staking
+    }
+
+    enum RewardState {
+        None,
+        NoActiveRewards,
+        ActiveRewards
+    }
 
     modifier updateGhosts {
         __before();
@@ -25,4 +59,55 @@ abstract contract BeforeAfter is Setup {
     function __after() internal {
 
     }
+
+    function __snapshot(Vars storage vars) internal {
+        /// CONTRACT STATE VARIABLES ///
+        vars.totalSupply = stakingRewards.totalSupply();
+        vars.rewardRate = stakingRewards.rewardRate();
+        vars.periodFinish = stakingRewards.periodFinish();
+        vars.lastUpdateTime = stakingRewards.lastUpdateTime();
+        vars.rewardPerTokenStored = stakingRewards.rewardPerTokenStored();
+        vars.rewardsDuration = stakingRewards.rewardsDuration();
+
+        vars.totalRewardDistributed = _ghost_totalRewardDistributed;
+        vars.rewardTokenBalance = rewardsToken.balanceOf(address(stakingRewards));
+        vars.stakingTokenBalance = stakingToken.balanceOf(address(stakingRewards));
+
+        /// STATEs ///
+        vars.rewardState = __isActiveReward(block.timestamp, vars.periodFinish, vars.rewardRate);
+        vars.stakeState = __stakeState(vars.totalSupply);
+        vars.paused = stakingRewards.paused();
+
+        /// ACTOR STATE VARIABLES ///
+        address actor = _getActor();
+        vars.actor_stakingBalance = stakingRewards.balanceOf(actor);
+        vars.actor_rewards = stakingRewards.rewards(actor);
+        vars.actor_userRewardPerTokenPaid = stakingRewards.userRewardPerTokenPaid(actor);
+    }
+
+    function __isActiveReward(uint256 timestamp, uint256 periodFinish, uint256 rewardRate) internal view returns (RewardState) {
+        if (periodFinish == 0 || rewardRate == 0) {
+            return RewardState.NoActiveRewards;
+        }
+        return timestamp < periodFinish ? RewardState.ActiveRewards : RewardState.NoActiveRewards;
+    }
+
+    function __stakeState(uint256 totalSupply) internal view returns (StakeState) {
+        return totalSupply > 0 ? StakeState.Staking : StakeState.NoStaking;
+    }
+
+    function __lastTimeRewardApplicable(uint256 timestamp, uint256 periodFinish) internal pure returns (uint256) {
+        return timestamp < periodFinish ? timestamp : periodFinish;
+    }
+
+    function __rewardPerToken(uint256 rewardPerTokenStored, uint256 lastUpdateTime, uint256 rewardRate, uint256 totalSupply) internal view returns (uint256) {
+        if (totalSupply == 0) {
+            return rewardPerTokenStored;
+        }
+        return
+            rewardPerTokenStored + (__lastTimeRewardApplicable(block.timestamp, periodFinish) - lastUpdateTime) * rewardRate * 1e18 / totalSupply;
+    }
+
+    function __earned_rewards(uint256 balance, uint256 rewardPerToken, uint256 userRewardPerTokenPaid, uint256 rewards) internal pure returns (uint256) {
+        return (balance * (rewardPerToken - userRewardPerTokenPaid) / 1e18) + rewards;
 }

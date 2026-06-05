@@ -17,8 +17,25 @@ abstract contract StakingRewardsTargets is
     Properties
 {
     /// CUSTOM TARGET FUNCTIONS - Add your own target functions here ///
+    uint256 canary_rewardDistributionTimestamp;
+    uint256 canary_claimRewardsTimestamp;
 
+    function property_canary_timeAdvanceBeforeClaimRewards() public {
+        // If rewardsDistribution was updated, then claiming should only be allowed after that timestamp
+        if (canary_rewardDistributionTimestamp != 0 && canary_claimRewardsTimestamp != 0) {
+            eq(
+                canary_claimRewardsTimestamp,
+                canary_rewardDistributionTimestamp,
+                "canary: claim rewards not advanced time"
+            );
+        }
+    }
 
+    function stakingRewards_notifyRewardAmount_clamped(uint256 reward) public asActor {
+        stakingRewards.notifyRewardAmount(reward);
+
+        _ghost_totalRewardDistributed += reward;
+    }
     /// AUTO GENERATED TARGET FUNCTIONS - WARNING: DO NOT DELETE OR MODIFY THIS LINE ///
 
     function stakingRewards_acceptOwnership() public asActor {
@@ -31,6 +48,8 @@ abstract contract StakingRewardsTargets is
 
     function stakingRewards_getReward() public asActor {
         stakingRewards.getReward();
+
+        canary_claimRewardsTimestamp = block.timestamp;
     }
 
     function stakingRewards_nominateNewOwner(address _owner) public asActor {
@@ -51,6 +70,8 @@ abstract contract StakingRewardsTargets is
 
     function stakingRewards_setRewardsDistribution(address _rewardsDistribution) public asActor {
         stakingRewards.setRewardsDistribution(_rewardsDistribution);
+
+        canary_rewardDistributionTimestamp = block.timestamp;
     }
 
     function stakingRewards_setRewardsDuration(uint256 _rewardsDuration) public asActor {
