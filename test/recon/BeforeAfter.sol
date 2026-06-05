@@ -34,15 +34,15 @@ abstract contract BeforeAfter is Setup {
     uint256 internal _ghost_totalNotifiedReward;
 
     enum StakeState {
-        None,
-        NoStaking,
-        Staking
+        NONE,
+        NO_STAKE,
+        STAKING
     }
 
     enum RewardState {
-        None,
-        NoActiveRewards,
-        ActiveRewards
+        NONE,
+        NO_ACTIVE_REWARDS,
+        ACTIVE_REWARDS
     }
 
     modifier updateGhosts {
@@ -87,13 +87,13 @@ abstract contract BeforeAfter is Setup {
 
     function __isActiveReward(uint256 timestamp, uint256 periodFinish, uint256 rewardRate) internal view returns (RewardState) {
         if (periodFinish == 0 || rewardRate == 0) {
-            return RewardState.NoActiveRewards;
+            return RewardState.NO_ACTIVE_REWARDS;
         }
-        return timestamp < periodFinish ? RewardState.ActiveRewards : RewardState.NoActiveRewards;
+        return timestamp < periodFinish ? RewardState.ACTIVE_REWARDS : RewardState.NO_ACTIVE_REWARDS;
     }
 
     function __stakeState(uint256 totalSupply) internal view returns (StakeState) {
-        return totalSupply > 0 ? StakeState.Staking : StakeState.NoStaking;
+        return totalSupply > 0 ? StakeState.STAKING : StakeState.NO_STAKE;
     }
 
     function __lastTimeRewardApplicable(Vars storage vars) internal view returns (uint256) {
@@ -108,13 +108,14 @@ abstract contract BeforeAfter is Setup {
         return __rewardPerToken(
             vars.timestamp,
             vars.rewardPerTokenStored,
+            vars.periodFinish,
             vars.lastUpdateTime,
             vars.rewardRate,
             vars.totalSupply
         );
     }
 
-    function __rewardPerToken(uint256 timestamp, uint256 rewardPerTokenStored, uint256 lastUpdateTime, uint256 rewardRate, uint256 totalSupply) internal pure returns (uint256) {
+    function __rewardPerToken(uint256 timestamp, uint256 rewardPerTokenStored, uint256 periodFinish, uint256 lastUpdateTime, uint256 rewardRate, uint256 totalSupply) internal pure returns (uint256) {
         if (totalSupply == 0) {
             return rewardPerTokenStored;
         }
