@@ -23,6 +23,7 @@ abstract contract ManagersTargets is
         _switchStakingRewards(entropy);
 
         stakingRewards = StakingRewards(_getStakingRewards());
+        currentOwner = stakingRewards.owner();
     }
     
     /// @dev Start acting as another actor
