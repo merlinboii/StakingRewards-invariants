@@ -158,4 +158,14 @@ abstract contract BeforeAfter is Setup {
         return (balance * (rewardPerToken - userRewardPerTokenPaid) / 1e18) + rewards;
     }
 
+    function __totalRewardOwedTilNow() internal view returns (uint256) {
+        address[] memory actors = _getActors();
+        uint256 totalRewardOwed = 0;
+        for (uint256 i = 0; i < actors.length; i++) {
+            totalRewardOwed += stakingRewards.earned(actors[i]);
+        }
+
+        return totalRewardOwed;
+    }
+
 }
