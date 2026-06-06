@@ -12,6 +12,9 @@ import {Panic} from "@recon/Panic.sol";
 
 import "src/StakingRewards.sol";
 
+import {MockERC20} from "@recon/MockERC20.sol";
+
+
 abstract contract StakingRewardsTargets is
     BaseTargetFunctions,
     Properties
@@ -23,27 +26,67 @@ abstract contract StakingRewardsTargets is
     function property_canary_timeAdvanceBeforeClaimRewards() public {
         // If rewardsDistribution was updated, then claiming should only be allowed after that timestamp
         if (canary_rewardDistributionTimestamp != 0 && canary_claimRewardsTimestamp != 0) {
-            eq(
+            lt(
                 canary_claimRewardsTimestamp,
                 canary_rewardDistributionTimestamp,
                 "canary: claim rewards not advanced time"
             );
         }
     }
+
+    ///@dev fund rewardsToken first, then notify a bounded reward amount.
+    function stakingRewards_fund_then_notifyRewardAmount(uint256 rewards) public {
+        MockERC20(address(stakingRewards.rewardsToken())).mint(address(stakingRewards), rewards);
+        stakingRewards_notifyRewardAmount(rewards);
+    }
+
+    function stakingRewards_updatePeriodFinish_extend_clamped(uint40 secondsFurther) public {
+        uint256 currentPeriodFinish = stakingRewards.periodFinish();
+        require(currentPeriodFinish > block.timestamp, "period ended");
+
+        stakingRewards_updatePeriodFinish(currentPeriodFinish + secondsFurther);
+    }
+
+    function stakingRewards_updatePeriodFinish_shorten_clamped(uint40 secondsShorter) public {
+        uint256 currentPeriodFinish = stakingRewards.periodFinish();
+        require(currentPeriodFinish > block.timestamp, "period ended");
+
+        stakingRewards_updatePeriodFinish(currentPeriodFinish - secondsShorter);
+    }
     /// AUTO GENERATED TARGET FUNCTIONS - WARNING: DO NOT DELETE OR MODIFY THIS LINE ///
 
     function stakingRewards_acceptOwnership() public asActor {
         stakingRewards.acceptOwnership();
+
+        currentOwner = _getActor();
     }
 
     function stakingRewards_exit() public updateGhostsWithType(OpType.EXIT) asActor {
         stakingRewards.exit();
+
+        eq(
+            stakingRewards.balanceOf(_getActor()),
+            0,
+            "stakingRewards_exit: not zero balances for actor"
+        );
+        
+        eq(
+            stakingRewards.rewards(_getActor()),
+            0,
+            "stakingRewards_exit: not zero rewards for actor"
+        );
     }
 
     function stakingRewards_getReward() public updateGhostsWithType(OpType.CLAIM_REWARDS) asActor {
         stakingRewards.getReward();
 
         canary_claimRewardsTimestamp = block.timestamp;
+
+        eq(
+            stakingRewards.rewards(_getActor()),
+            0,
+            "stakingRewards_getReward: not zero rewards for actor"
+        );
     }
 
     function stakingRewards_nominateNewOwner(address _owner) public asActor {
@@ -55,10 +98,24 @@ abstract contract StakingRewardsTargets is
 
         _ghost_totalNotifiedReward += reward;
         canary_rewardDistributionTimestamp = block.timestamp;
+
+        uint256 remainingScheduledRewards = (stakingRewards.periodFinish() - block.timestamp) * stakingRewards.rewardRate();
+        uint256 totalRewardOwed = __totalRewardOwedTilNow();
+
+        gte(
+            stakingRewards.rewardsToken().balanceOf(address(stakingRewards)),
+            totalRewardOwed + remainingScheduledRewards,
+            "reward token balance cannot cover owed rewards plus scheduled rewards"
+        );
     }
 
     function stakingRewards_recoverERC20(address tokenAddress, uint256 tokenAmount) public asActor {
+        if (!ALLOW_OWNER_REKT) {
+            // block rewardsToken recovery entirely for now, later this can be relaxed to allow only surplus (will need extra accounting here)
+            require(tokenAddress != address(stakingRewards.rewardsToken()), "owner rekt disabled");
+        }
         stakingRewards.recoverERC20(tokenAddress, tokenAmount);
+
     }
 
     function stakingRewards_setPaused(bool _paused) public updateGhosts asActor {
@@ -74,14 +131,35 @@ abstract contract StakingRewardsTargets is
     }
 
     function stakingRewards_stake(uint256 amount) public updateGhostsWithType(OpType.ADD_STAKE) asActor {
+        uint256 before__stakeBalance = stakingRewards.balanceOf(_getActor());
         stakingRewards.stake(amount);
+        uint256 after__stakeBalance = stakingRewards.balanceOf(_getActor());
+
+        eq(
+            after__stakeBalance,
+            before__stakeBalance + amount,
+            "stakingRewards_stake: increase inaccurately"
+        );
     }
 
     function stakingRewards_updatePeriodFinish(uint256 timestamp) public updateGhosts asActor {
+        if (!ALLOW_OWNER_REKT) {
+            // just not allow the update that can cause th underflow revert (lastTimeRewardApplicable() - lastUpdateTime)
+            require(timestamp >= stakingRewards.lastUpdateTime(), "owner rekt disabled");
+        }
         stakingRewards.updatePeriodFinish(timestamp);
     }
 
     function stakingRewards_withdraw(uint256 amount) public updateGhostsWithType(OpType.REMOVE_STAKE) asActor {
+        uint256 before__stakeBalance = stakingRewards.balanceOf(_getActor());
         stakingRewards.withdraw(amount);
+        uint256 after__stakeBalance = stakingRewards.balanceOf(_getActor());
+
+        eq(
+            after__stakeBalance,
+            before__stakeBalance - amount,
+            "stakingRewards_withdraw: decrease inaccurately"
+        );
+
     }
 }
