@@ -18,10 +18,14 @@ import "src/StakingRewards.sol";
 
 abstract contract Setup is BaseSetup, ActorManager, AssetManager, StakingRewardsManager, Utils {
     StakingRewards stakingRewards;
+    address currentOwner;
+
+    bool ALLOW_OWNER_REKT;
 
     /// === Setup === ///
     /// This contains all calls to be performed in the tester constructor, both for Echidna and Foundry
     function setup() internal virtual override {
+        currentOwner = address(this);
         stakingRewards = _deployStakingRewards(_newAsset(18), _newAsset(18));
         _addStakingRewards(address(stakingRewards));
 
@@ -98,7 +102,7 @@ abstract contract Setup is BaseSetup, ActorManager, AssetManager, StakingRewards
     /// Prank admin and actor
     
     modifier asAdmin {
-        vm.startPrank(address(this));
+        vm.startPrank(currentOwner);
         _;
         vm.stopPrank();
     }
