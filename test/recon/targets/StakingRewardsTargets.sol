@@ -26,7 +26,7 @@ abstract contract StakingRewardsTargets is
     function property_canary_timeAdvanceBeforeClaimRewards() public {
         // If rewardsDistribution was updated, then claiming should only be allowed after that timestamp
         if (canary_rewardDistributionTimestamp != 0 && canary_claimRewardsTimestamp != 0) {
-            lt(
+            lte(
                 canary_claimRewardsTimestamp,
                 canary_rewardDistributionTimestamp,
                 "canary: claim rewards not advanced time"
@@ -40,19 +40,39 @@ abstract contract StakingRewardsTargets is
         stakingRewards_notifyRewardAmount(rewards);
     }
 
-    function stakingRewards_updatePeriodFinish_extend_clamped(uint40 secondsFurther) public {
+    /// @dev new period finish >= current period finish
+    /// @dev secondsAdjust == 0, keeps the same period finish (no change)
+    function stakingRewards_updatePeriodFinish_extend_clamped(uint40 secondsAdjust) public {
         uint256 currentPeriodFinish = stakingRewards.periodFinish();
         require(currentPeriodFinish > block.timestamp, "period ended");
 
-        stakingRewards_updatePeriodFinish(currentPeriodFinish + secondsFurther);
+        stakingRewards_updatePeriodFinish(currentPeriodFinish + secondsAdjust);
     }
 
-    function stakingRewards_updatePeriodFinish_shorten_clamped(uint40 secondsShorter) public {
+    /// @dev block.timestamp <= new period finish < current period finish     
+    /// @dev secondsAdjust % window == 0, end now
+    function stakingRewards_updatePeriodFinish_end_early_clamped(uint40 secondsAdjust) public {
         uint256 currentPeriodFinish = stakingRewards.periodFinish();
         require(currentPeriodFinish > block.timestamp, "period ended");
 
-        stakingRewards_updatePeriodFinish(currentPeriodFinish - secondsShorter);
+        uint256 window = currentPeriodFinish - block.timestamp;
+        uint256 newPeriodFinish = block.timestamp + (secondsAdjust % window);
+        stakingRewards_updatePeriodFinish(newPeriodFinish);
     }
+
+    /// @dev lastUpdateTime <= new period finish < block.timestamp 
+    /// @dev secondsAdjust % window == 0, newPeriodFinish == lastUpdateTime
+    function stakingRewards_updatePeriodFinish_elapsed_clamped(uint40 secondsAdjust) public {
+        uint256 currentPeriodFinish = stakingRewards.periodFinish();
+        uint256 lastUpdateTime = stakingRewards.lastUpdateTime();
+        require(currentPeriodFinish > block.timestamp, "period ended");
+        require(block.timestamp > lastUpdateTime, "empty window");
+
+        uint256 window = block.timestamp - lastUpdateTime;
+        uint256 newPeriodFinish = lastUpdateTime + (secondsAdjust % window);
+        stakingRewards_updatePeriodFinish(newPeriodFinish);        
+    }
+
     /// AUTO GENERATED TARGET FUNCTIONS - WARNING: DO NOT DELETE OR MODIFY THIS LINE ///
 
     function stakingRewards_acceptOwnership() public asActor {
@@ -126,7 +146,7 @@ abstract contract StakingRewardsTargets is
         stakingRewards.setRewardsDistribution(_rewardsDistribution);
     }
 
-    function stakingRewards_setRewardsDuration(uint256 _rewardsDuration) public updateGhosts asActor {
+    function stakingRewards_setRewardsDuration(uint256 _rewardsDuration) public updateGhostsWithType(OpType.REWARD_CONFIG) asActor {
         stakingRewards.setRewardsDuration(_rewardsDuration);
     }
 
@@ -142,7 +162,7 @@ abstract contract StakingRewardsTargets is
         );
     }
 
-    function stakingRewards_updatePeriodFinish(uint256 timestamp) public updateGhosts asActor {
+    function stakingRewards_updatePeriodFinish(uint256 timestamp) public updateGhostsWithType(OpType.REWARD_CONFIG) asActor {
         if (!ALLOW_OWNER_REKT) {
             // just not allow the update that can cause th underflow revert (lastTimeRewardApplicable() - lastUpdateTime)
             require(timestamp >= stakingRewards.lastUpdateTime(), "owner rekt disabled");
