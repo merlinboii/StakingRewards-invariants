@@ -42,7 +42,8 @@ abstract contract BeforeAfter is Setup {
         REMOVE_STAKE,
         ADD_REWARDS,
         CLAIM_REWARDS,
-        EXIT
+        EXIT,
+        REWARD_CONFIG
     }
 
     enum StakeState {
