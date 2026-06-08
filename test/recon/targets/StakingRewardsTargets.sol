@@ -165,7 +165,9 @@ abstract contract StakingRewardsTargets is
     function stakingRewards_updatePeriodFinish(uint256 timestamp) public updateGhostsWithType(OpType.REWARD_CONFIG) asActor {
         if (!ALLOW_OWNER_REKT) {
             // just not allow the update that can cause th underflow revert (lastTimeRewardApplicable() - lastUpdateTime)
-            require(timestamp >= stakingRewards.lastUpdateTime(), "owner rekt disabled");
+            require(timestamp >= stakingRewards.lastUpdateTime(), "owner rekt disabled: make underflow revert in calcualtion");
+            require(timestamp < stakingRewards.periodFinish(), "owner rekt disabled: make extend period without rewards backing");
+
         }
         stakingRewards.updatePeriodFinish(timestamp);
     }
