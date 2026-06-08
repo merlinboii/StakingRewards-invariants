@@ -25,6 +25,7 @@ contract CryticToFoundry is Test, TargetFunctions, FoundryAsserts {
     //////////// Recon Fuzzer, log scraper by: https://getrecon.xyz/tools/echidna ////////////
     ////// @dev 001: shrinkLimit: 100000
     ////// @dev 002, 004: shrinkLimit: 500000
+    ////// @dev 005: not allow extending period finish
     //////////////////////////////////////////////////////////////////////////////////////////
 
     // forge test --match-test test_property_no_active_rewards_without_stakers_001 -vvv 
@@ -80,6 +81,9 @@ contract CryticToFoundry is Test, TargetFunctions, FoundryAsserts {
 
     // forge test --match-test test_doomsday_recover_surplus_using_getRewardForDuration_preserves_rewards_001 -vvv 
     function test_doomsday_recover_surplus_using_getRewardForDuration_preserves_rewards_001() public {
+
+        //@note Breaks because `periodFinish` is extended far into the future.
+        // The period finish was extended before this check, so the contract is already underbacked before the recovery simulation.
 
         stakingRewards_fund_then_notifyRewardAmount(604803);
 
@@ -303,6 +307,9 @@ contract CryticToFoundry is Test, TargetFunctions, FoundryAsserts {
     // forge test --match-test test_stakingRewards_fund_then_notifyRewardAmount_001 -vvv 
     function test_stakingRewards_fund_then_notifyRewardAmount_001() public {
 
+        //@note Breaks because `periodFinish` is extended far into the future
+        // The next notify includes a large leftover schedule, so the contract's balance/rate check can revert
+
         stakingRewards_setRewardsDuration(1);
 
         switch_asset(0);
@@ -344,6 +351,9 @@ contract CryticToFoundry is Test, TargetFunctions, FoundryAsserts {
     ///////////////////// 004 ////////////////////
     // forge test --match-test test_stakingRewards_fund_then_notifyRewardAmount_004 -vvv 
     function test_stakingRewards_fund_then_notifyRewardAmount_004() public {
+
+        //@note Breaks because `periodFinish` is extended far into the future
+        // The next notify includes a large leftover schedule, so the contract's balance/rate check can revert
 
         stakingRewards_setRewardsDuration(1);
 
@@ -409,6 +419,9 @@ contract CryticToFoundry is Test, TargetFunctions, FoundryAsserts {
 
     // forge test --match-test test_doomsday_recover_surplus_using_getRewardForDuration_preserves_rewards_004 -vvv 
     function test_doomsday_recover_surplus_using_getRewardForDuration_preserves_rewards_004() public {
+
+        //@note Breaks because `periodFinish` is extended far into the future.
+        // The period finish was extended before this check, so the contract is already underbacked before the recovery simulation.
 
         stakingRewards_fund_then_notifyRewardAmount(604801);
 
@@ -533,4 +546,79 @@ contract CryticToFoundry is Test, TargetFunctions, FoundryAsserts {
         property_actor_earned_rewards_not_decrease_except_claim();
 
     }
+
+    ///////////////////// 005 ////////////////////
+    // forge test --match-test test_property_reward_config_changes_do_not_reduce_actor_owed_005 -vvv 
+    function test_property_reward_config_changes_do_not_reduce_actor_owed_005() public {
+
+        stakingRewards_fund_then_notifyRewardAmount(604801);
+
+        stakingRewards_stake(1);
+
+        vm.warp(block.timestamp + 1);
+        stakingRewards_updatePeriodFinish_elapsed_clamped(0);
+
+        property_reward_config_changes_do_not_reduce_actor_owed();
+
+    }
+
+    // forge test --match-test test_stakingRewards_notifyRewardAmount_005 -vvv 
+    function test_stakingRewards_notifyRewardAmount_005() public {
+
+        stakingRewards_setRewardsDuration(1);
+
+        stakingRewards_stake(1);
+
+        stakingRewards_fund_then_notifyRewardAmount(1);
+
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 1);
+        stakingRewards_notifyRewardAmount(1);
+
+    }
+
+    // forge test --match-test test_property_no_active_rewards_without_stakers_005 -vvv 
+    function test_property_no_active_rewards_without_stakers_005() public {
+
+        stakingRewards_setRewardsDuration(1);
+
+        switch_asset(0);
+
+        asset_mint(0xF62849F9A0B5Bf2913b396098F7c7019b51A820a,1);
+
+        stakingRewards_notifyRewardAmount(1);
+
+        property_no_active_rewards_without_stakers();
+
+    }
+
+    // forge test --match-test test_doomsday_recover_surplus_using_getRewardForDuration_preserves_rewards_005 -vvv 
+    function test_doomsday_recover_surplus_using_getRewardForDuration_preserves_rewards_005() public {
+
+        stakingRewards_fund_then_notifyRewardAmount(604801);
+
+        stakingRewards_stake(1);
+
+        vm.roll(block.number + 1);
+        vm.warp(block.timestamp + 1);
+        stakingRewards_notifyRewardAmount(0);
+
+        doomsday_recover_surplus_using_getRewardForDuration_preserves_rewards();
+
+    }
+
+    // forge test --match-test test_property_actor_earned_rewards_not_decrease_except_claim_005 -vvv 
+    function test_property_actor_earned_rewards_not_decrease_except_claim_005() public {
+
+        stakingRewards_fund_then_notifyRewardAmount(604801);
+
+        stakingRewards_stake(1);
+
+        vm.warp(block.timestamp + 1);
+        stakingRewards_updatePeriodFinish_elapsed_clamped(0);
+
+        property_actor_earned_rewards_not_decrease_except_claim();
+
+    }
+    
 }
